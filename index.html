@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A printable piano chart: treble and bass clefs, Hebrew note names and finger numbers.">
+<title>Painting Pianos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Homemade+Apple&family=Heebo:wght@500;700&family=Noto+Music&display=swap">
+
+<style>
+  :root { --bg: #FFFFFF; --fg: #1D1A3A; --key-white: #FFFFFF; --key-black: #1D1A3A; --key-edge: #1D1A3A; --title-bg: #DCF2D4; --title-edge: #7CBF6E; --title-fg: #1F4A24; --blue-bg: #D8E7FA; --blue-edge: #6F9FDA; --blue-fg: #1B3A63; --band-a: #F5F6F9; --band-b: #E8E9F0; --key-white-alt: #EDEEF3; --sign: #D97757; --muted: #6B6889; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12111F; --fg: #EEECFA; --key-white: #F4F3FA; --key-black: #0A0914; --key-edge: #0A0914; --title-bg: #22392A; --title-edge: #5E9F5A; --title-fg: #D4F1CC; --blue-bg: #1D2C44; --blue-edge: #5A8BD0; --blue-fg: #D3E3FA; --band-a: #1C1B2D; --band-b: #28273D; --key-white-alt: #CFCDDF; --sign: #E08A6D; --muted: #9C99BC; color-scheme: dark } }
+  :root[data-theme="dark"] { --bg: #12111F; --fg: #EEECFA; --key-white: #F4F3FA; --key-black: #0A0914; --key-edge: #0A0914; --title-bg: #22392A; --title-edge: #5E9F5A; --title-fg: #D4F1CC; --blue-bg: #1D2C44; --blue-edge: #5A8BD0; --blue-fg: #D3E3FA; --band-a: #1C1B2D; --band-b: #28273D; --key-white-alt: #CFCDDF; --sign: #E08A6D; --muted: #9C99BC; color-scheme: dark }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  /* Frame around each chart; side padding lives here so the % layout inside stays exact */
+  .frame {
+    max-width: 1080px; margin: 32px auto;
+    border: 1.5px solid var(--acc-edge); border-radius: 6px;
+    padding-inline: clamp(12px, 3vw, 32px);
+    --acc-bg: var(--title-bg); --acc-edge: var(--title-edge); --acc-fg: var(--title-fg);
+  }
+  .frame.bass { --acc-bg: var(--blue-bg); --acc-edge: var(--blue-edge); --acc-fg: var(--blue-fg); }
+  .title {
+    width: fit-content; max-width: 100%; box-sizing: border-box;
+    margin: 28px auto 0; padding: 8px 24px; text-align: center; text-wrap: balance;
+    background: var(--acc-bg); border: 2px solid var(--acc-edge); border-radius: 12px;
+    font-family: "Heebo", "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif; font-weight: 700;
+    font-size: clamp(17px, 2.2vw, 24px); line-height: 1.2; color: var(--acc-fg);
+  }
+  .canvas { padding-block: 48px; display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 1080px; margin-inline: auto; position: relative; }
+  /* One grey column per white key, from the top of the staff down to the finger numbers */
+  .bands {
+    position: absolute; top: 48px; bottom: 48px; left: 11.036%; width: 77.939%;
+    background: repeating-linear-gradient(90deg, var(--band-a) 0 7.142857%, var(--band-b) 7.142857% 14.285714%);
+  }
+  .staff, .piano, .names, .fingers { position: relative; }
+  .names, .fingers {
+    align-self: flex-start; width: 77.939%; margin: 0 0 0 11.036%; padding: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(14, 1fr);
+    font-family: "Heebo", "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif;
+    font-size: clamp(13px, 2vw, 22px); line-height: 1.6; text-align: center; color: var(--fg);
+  }
+  .names { font-weight: 500; }
+  .fingers { font-weight: 700; font-variant-numeric: tabular-nums; }
+  /* Label box in the left margin, beside the finger numbers */
+  .fingers::before {
+    content: attr(data-label);
+    position: absolute; right: 100%; top: 50%; transform: translateY(-50%);
+    margin-right: 8px; padding: 2px 10px; white-space: nowrap; direction: rtl;
+    background: var(--acc-bg); border: 2px solid var(--acc-edge); border-radius: 8px;
+    font-weight: 700; font-size: clamp(11px, 1.6vw, 17px); line-height: 1.4; color: var(--acc-fg);
+  }
+  .piano, .staff { height: auto; display: block; }
+  .staff { width: 100%; }
+  .piano { width: 78.496%; align-self: flex-start; margin-left: 10.758%; }
+  .staff line { stroke: var(--fg); stroke-width: 2; stroke-linecap: round; }
+  .staff .head { fill: var(--fg); fill-rule: evenodd; }
+  .staff .clef { fill: var(--fg); font-size: 96px; font-family: "Noto Music", serif; }
+  .staff .bass-clef { font-size: 100px; }
+  .white { fill: var(--key-white); stroke: var(--key-edge); stroke-width: 2; }
+  .white.alt { fill: var(--key-white-alt); }
+  .black { fill: var(--key-black); stroke: var(--key-edge); stroke-width: 2; }
+  /* Signature, bottom right: handwritten name + hand-drawn spark */
+  .signature {
+    max-width: 1080px; margin: -12px auto 0; padding: 0 12px 32px 0; box-sizing: border-box;
+    display: flex; justify-content: flex-end; align-items: center; gap: 6px;
+    font-family: "Homemade Apple", "Segoe Script", "Brush Script MT", cursive; font-size: 22px; line-height: 1.6;
+    color: var(--muted);
+  }
+  /* A real signature is never perfectly level */
+  .signature span { display: inline-block; transform: rotate(-3deg); }
+  .signature svg { width: 34px; height: 34px; transform: translateY(-8px) rotate(-8deg); }
+  .signature path { fill: none; stroke: var(--sign); stroke-linecap: round; }
+
+  /* The chart stays paper-white; the colour lives around it */
+  body {
+    min-height: 100%; box-sizing: border-box; padding-block: 0 48px;
+    background: #FFF6EC; overflow-x: hidden;
+    font-family: "Heebo", Arial, sans-serif;
+  }
+  .sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: linear-gradient(160deg, #FFF3E6, #F3ECFF 55%, #E6F6FF); }
+  .blob { position: absolute; width: 55vmax; height: 55vmax; border-radius: 50%; filter: blur(60px); opacity: .55; animation: drift 22s ease-in-out infinite alternate; }
+  .blob.a { background: #FF9A76; top: -20vmax; left: -15vmax; }
+  .blob.b { background: #8FD694; bottom: -25vmax; left: 10vmax; animation-delay: -7s; }
+  .blob.c { background: #7FB2F0; top: -10vmax; right: -20vmax; animation-delay: -14s; }
+  .blob.d { background: #F7C8F0; bottom: -20vmax; right: -10vmax; animation-delay: -3s; }
+  @keyframes drift { to { transform: translate(6vmax, 4vmax) scale(1.12) rotate(25deg); } }
+  @media (prefers-reduced-motion: reduce) { .blob { animation: none; } }
+
+  .hero { max-width: 1080px; margin: 0 auto; padding: 48px 0 24px; text-align: center; }
+  .hero h1 {
+    margin: 0; font-family: "Homemade Apple", cursive; font-weight: 400;
+    font-size: clamp(34px, 7vw, 68px); line-height: 1.5;
+    background: linear-gradient(90deg, #E2603F, #C04FB0 40%, #3F7FD9 70%, #3E9B52);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { margin: 4px 0 0; font-size: clamp(15px, 2vw, 19px); color: #4A4668; }
+  .hero p[lang="he"] { font-weight: 700; }
+  .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px; }
+  .actions a, .actions button {
+    font: 700 15px "Heebo", Arial, sans-serif; color: #fff; text-decoration: none; cursor: pointer;
+    border: 0; border-radius: 999px; padding: 10px 22px;
+    background: linear-gradient(135deg, #E2603F, #C04FB0); box-shadow: 0 6px 18px rgb(192 79 176 / .3);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .actions a:nth-child(2) { background: linear-gradient(135deg, #3F7FD9, #3E9B52); box-shadow: 0 6px 18px rgb(63 127 217 / .3); }
+  .actions a:hover, .actions button:hover { transform: translateY(-2px); }
+
+  .paper {
+    max-width: 1140px; margin: 16px auto 0; padding: 8px clamp(4px, 2vw, 28px) 0;
+    background: #fff; border-radius: 20px; box-shadow: 0 24px 60px rgb(60 40 90 / .18);
+  }
+  .paper .frame { margin-block: 24px; }
+  /* On phones the chart keeps its proportions and scrolls sideways instead of squashing */
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .scroll > .inner { min-width: 760px; padding: 0 4px; }
+  .hint { display: none; text-align: center; font-size: 13px; color: #6B6889; margin: 12px 0 0; }
+  @media (max-width: 780px) { .hint { display: block; } }
+
+  /* Tap to play */
+  .piano rect { cursor: pointer; transition: fill .25s ease; }
+  .piano rect.lit { fill: var(--acc-edge); transition: none; }
+  .note .head { transition: fill .25s ease, transform .25s ease; transform-box: fill-box; transform-origin: center; }
+  .note.lit .head { fill: var(--acc-edge); transform: scale(1.25); transition: none; }
+
+  @media print {
+    .sky, .hero { display: none; }
+    body { background: #fff; padding: 0; }
+    .paper { box-shadow: none; border-radius: 0; padding: 0; max-width: none; }
+  }
+</style>
+<div class="sky" aria-hidden="true"><div class="blob a"></div><div class="blob b"></div><div class="blob c"></div><div class="blob d"></div></div>
+<header class="hero">
+  <h1>Painting Pianos</h1>
+  <p>Tap any key or note to hear it</p>
+  <p lang="he" dir="rtl">לחצו על קליד או תו כדי לשמוע אותו</p>
+  <div class="actions"><button id="print" type="button">Print</button><a href="painting_pianos.png" download>Download image</a></div>
+</header>
+<div class="paper">
+<p class="hint">← swipe to see the whole keyboard →</p>
+<div class="scroll"><div class="inner">
+<div class="frame">
+<h1 class="title" lang="he" dir="rtl">מפתח סול (יד ימין)</h1>
+<main class="canvas">
+  <div class="bands" aria-hidden="true"></div>
+  <!-- Treble staff: one whole note above each white key, C4 to B5 -->
+  <svg class="staff" viewBox="-42 -44 932 210" role="img" aria-label="Treble staff with a whole note for every white key, C4 to B5">
+    <line x1="-40" y1="22" x2="888" y2="22"/>
+    <line x1="-40" y1="46" x2="888" y2="46"/>
+    <line x1="-40" y1="70" x2="888" y2="70"/>
+    <line x1="-40" y1="94" x2="888" y2="94"/>
+    <line x1="-40" y1="118" x2="888" y2="118"/>
+    <line x1="-40" y1="22" x2="-40" y2="118"/>
+    <line x1="888" y1="22" x2="888" y2="118"/>
+  <text class="clef" x="-33" y="118">𝄞</text>
+  <g class="notes">
+    <g class="note" data-note="C4">
+      <line class="ledger" x1="69.8" y1="142" x2="103.8" y2="142"/>
+      <path class="head" d="M74.8 142A12 9.5 0 1 0 98.8 142A12 9.5 0 1 0 74.8 142ZM82.3 147.36A7 4 -50 1 0 91.3 136.64A7 4 -50 1 0 82.3 147.36Z"/>
+    </g>
+    <g class="note" data-note="D4">
+      <path class="head" d="M126.7 130A12 9.5 0 1 0 150.7 130A12 9.5 0 1 0 126.7 130ZM134.2 135.36A7 4 -50 1 0 143.2 124.64A7 4 -50 1 0 134.2 135.36Z"/>
+    </g>
+    <g class="note" data-note="E4">
+      <path class="head" d="M178.6 118A12 9.5 0 1 0 202.6 118A12 9.5 0 1 0 178.6 118ZM186.1 123.36A7 4 -50 1 0 195.1 112.64A7 4 -50 1 0 186.1 123.36Z"/>
+    </g>
+    <g class="note" data-note="F4">
+      <path class="head" d="M230.5 106A12 9.5 0 1 0 254.5 106A12 9.5 0 1 0 230.5 106ZM238 111.36A7 4 -50 1 0 247 100.64A7 4 -50 1 0 238 111.36Z"/>
+    </g>
+    <g class="note" data-note="G4">
+      <path class="head" d="M282.3 94A12 9.5 0 1 0 306.3 94A12 9.5 0 1 0 282.3 94ZM289.8 99.36A7 4 -50 1 0 298.8 88.64A7 4 -50 1 0 289.8 99.36Z"/>
+    </g>
+    <g class="note" data-note="A4">
+      <path class="head" d="M334.2 82A12 9.5 0 1 0 358.2 82A12 9.5 0 1 0 334.2 82ZM341.7 87.36A7 4 -50 1 0 350.7 76.64A7 4 -50 1 0 341.7 87.36Z"/>
+    </g>
+    <g class="note" data-note="B4">
+      <path class="head" d="M386.1 70A12 9.5 0 1 0 410.1 70A12 9.5 0 1 0 386.1 70ZM393.6 75.36A7 4 -50 1 0 402.6 64.64A7 4 -50 1 0 393.6 75.36Z"/>
+    </g>
+    <g class="note" data-note="C5">
+      <path class="head" d="M438 58A12 9.5 0 1 0 462 58A12 9.5 0 1 0 438 58ZM445.5 63.36A7 4 -50 1 0 454.5 52.64A7 4 -50 1 0 445.5 63.36Z"/>
+    </g>
+    <g class="note" data-note="D5">
+      <path class="head" d="M489.9 46A12 9.5 0 1 0 513.9 46A12 9.5 0 1 0 489.9 46ZM497.4 51.36A7 4 -50 1 0 506.4 40.64A7 4 -50 1 0 497.4 51.36Z"/>
+    </g>
+    <g class="note" data-note="E5">
+      <path class="head" d="M541.8 34A12 9.5 0 1 0 565.8 34A12 9.5 0 1 0 541.8 34ZM549.3 39.36A7 4 -50 1 0 558.3 28.64A7 4 -50 1 0 549.3 39.36Z"/>
+    </g>
+    <g class="note" data-note="F5">
+      <path class="head" d="M593.7 22A12 9.5 0 1 0 617.7 22A12 9.5 0 1 0 593.7 22ZM601.2 27.36A7 4 -50 1 0 610.2 16.64A7 4 -50 1 0 601.2 27.36Z"/>
+    </g>
+    <g class="note" data-note="G5">
+      <path class="head" d="M645.5 10A12 9.5 0 1 0 669.5 10A12 9.5 0 1 0 645.5 10ZM653 15.36A7 4 -50 1 0 662 4.64A7 4 -50 1 0 653 15.36Z"/>
+    </g>
+    <g class="note" data-note="A5">
+      <line class="ledger" x1="692.4" y1="-2" x2="726.4" y2="-2"/>
+      <path class="head" d="M697.4 -2A12 9.5 0 1 0 721.4 -2A12 9.5 0 1 0 697.4 -2ZM704.9 3.36A7 4 -50 1 0 713.9 -7.36A7 4 -50 1 0 704.9 3.36Z"/>
+    </g>
+    <g class="note" data-note="B5">
+      <line class="ledger" x1="744.3" y1="-2" x2="778.3" y2="-2"/>
+      <path class="head" d="M749.3 -14A12 9.5 0 1 0 773.3 -14A12 9.5 0 1 0 749.3 -14ZM756.8 -8.64A7 4 -50 1 0 765.8 -19.36A7 4 -50 1 0 756.8 -8.64Z"/>
+    </g>
+  </g>
+  </svg>
+
+  <!-- Note names in Hebrew: Do Re Mi Fa Sol La Si -->
+  <ol class="names" aria-label="Note names in Hebrew">
+    <li lang="he" dir="rtl">דו</li>
+    <li lang="he" dir="rtl">רה</li>
+    <li lang="he" dir="rtl">מי</li>
+    <li lang="he" dir="rtl">פה</li>
+    <li lang="he" dir="rtl">סול</li>
+    <li lang="he" dir="rtl">לה</li>
+    <li lang="he" dir="rtl">סי</li>
+    <li lang="he" dir="rtl">דו</li>
+    <li lang="he" dir="rtl">רה</li>
+    <li lang="he" dir="rtl">מי</li>
+    <li lang="he" dir="rtl">פה</li>
+    <li lang="he" dir="rtl">סול</li>
+    <li lang="he" dir="rtl">לה</li>
+    <li lang="he" dir="rtl">סי</li>
+  </ol>
+
+  <!-- Two octaves, C4 to B5: 14 white keys, 10 black keys -->
+  <svg class="piano" viewBox="-2 -2 564 160" role="img" aria-label="Piano keyboard from C4 to B5">
+    <g class="whites">
+      <rect class="white" x="0" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="40" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="80" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="120" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="160" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="200" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="240" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="280" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="320" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="360" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="400" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="440" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="480" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="520" y="0" width="40" height="154" rx="3"/>
+    </g>
+    <g class="blacks">
+      <rect class="black" x="28" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="68" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="148" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="188" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="228" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="308" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="348" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="428" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="468" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="508" y="0" width="24" height="96" rx="2"/>
+    </g>
+  </svg>
+
+  <!-- Right-hand fingering for the C major scale: thumb (1) on C and F -->
+  <ol class="fingers" lang="he" data-label="מספר אצבע" aria-label="מספר אצבע">
+    <li>1</li>
+    <li>2</li>
+    <li>3</li>
+    <li>1</li>
+    <li>2</li>
+    <li>3</li>
+    <li>4</li>
+    <li>1</li>
+    <li>2</li>
+    <li>3</li>
+    <li>1</li>
+    <li>2</li>
+    <li>3</li>
+    <li>4</li>
+  </ol>
+</main>
+</div>
+
+<div class="frame bass">
+<h1 class="title" lang="he" dir="rtl">מפתח פה (יד שמאל)</h1>
+<main class="canvas">
+  <div class="bands" aria-hidden="true"></div>
+  <!-- Bass staff: one whole note above each white key, C2 to B3 -->
+  <svg class="staff" viewBox="-42 -14 932 200" role="img" aria-label="Bass staff with a whole note for every white key, C2 to B3">
+    <line x1="-40" y1="22" x2="888" y2="22"/>
+    <line x1="-40" y1="46" x2="888" y2="46"/>
+    <line x1="-40" y1="70" x2="888" y2="70"/>
+    <line x1="-40" y1="94" x2="888" y2="94"/>
+    <line x1="-40" y1="118" x2="888" y2="118"/>
+    <line x1="-40" y1="22" x2="-40" y2="118"/>
+    <line x1="888" y1="22" x2="888" y2="118"/>
+  <text class="clef bass-clef" x="-35" y="110.7">𝄢</text>
+  <g class="notes">
+    <g class="note" data-note="C2">
+      <line class="ledger" x1="69.8" y1="142" x2="103.8" y2="142"/>
+      <line class="ledger" x1="69.8" y1="166" x2="103.8" y2="166"/>
+      <path class="head" d="M74.8 166A12 9.5 0 1 0 98.8 166A12 9.5 0 1 0 74.8 166ZM82.3 171.36A7 4 -50 1 0 91.3 160.64A7 4 -50 1 0 82.3 171.36Z"/>
+    </g>
+    <g class="note" data-note="D2">
+      <line class="ledger" x1="121.7" y1="142" x2="155.7" y2="142"/>
+      <path class="head" d="M126.7 154A12 9.5 0 1 0 150.7 154A12 9.5 0 1 0 126.7 154ZM134.2 159.36A7 4 -50 1 0 143.2 148.64A7 4 -50 1 0 134.2 159.36Z"/>
+    </g>
+    <g class="note" data-note="E2">
+      <line class="ledger" x1="173.6" y1="142" x2="207.6" y2="142"/>
+      <path class="head" d="M178.6 142A12 9.5 0 1 0 202.6 142A12 9.5 0 1 0 178.6 142ZM186.1 147.36A7 4 -50 1 0 195.1 136.64A7 4 -50 1 0 186.1 147.36Z"/>
+    </g>
+    <g class="note" data-note="F2">
+      <path class="head" d="M230.5 130A12 9.5 0 1 0 254.5 130A12 9.5 0 1 0 230.5 130ZM238 135.36A7 4 -50 1 0 247 124.64A7 4 -50 1 0 238 135.36Z"/>
+    </g>
+    <g class="note" data-note="G2">
+      <path class="head" d="M282.3 118A12 9.5 0 1 0 306.3 118A12 9.5 0 1 0 282.3 118ZM289.8 123.36A7 4 -50 1 0 298.8 112.64A7 4 -50 1 0 289.8 123.36Z"/>
+    </g>
+    <g class="note" data-note="A2">
+      <path class="head" d="M334.2 106A12 9.5 0 1 0 358.2 106A12 9.5 0 1 0 334.2 106ZM341.7 111.36A7 4 -50 1 0 350.7 100.64A7 4 -50 1 0 341.7 111.36Z"/>
+    </g>
+    <g class="note" data-note="B2">
+      <path class="head" d="M386.1 94A12 9.5 0 1 0 410.1 94A12 9.5 0 1 0 386.1 94ZM393.6 99.36A7 4 -50 1 0 402.6 88.64A7 4 -50 1 0 393.6 99.36Z"/>
+    </g>
+    <g class="note" data-note="C3">
+      <path class="head" d="M438 82A12 9.5 0 1 0 462 82A12 9.5 0 1 0 438 82ZM445.5 87.36A7 4 -50 1 0 454.5 76.64A7 4 -50 1 0 445.5 87.36Z"/>
+    </g>
+    <g class="note" data-note="D3">
+      <path class="head" d="M489.9 70A12 9.5 0 1 0 513.9 70A12 9.5 0 1 0 489.9 70ZM497.4 75.36A7 4 -50 1 0 506.4 64.64A7 4 -50 1 0 497.4 75.36Z"/>
+    </g>
+    <g class="note" data-note="E3">
+      <path class="head" d="M541.8 58A12 9.5 0 1 0 565.8 58A12 9.5 0 1 0 541.8 58ZM549.3 63.36A7 4 -50 1 0 558.3 52.64A7 4 -50 1 0 549.3 63.36Z"/>
+    </g>
+    <g class="note" data-note="F3">
+      <path class="head" d="M593.7 46A12 9.5 0 1 0 617.7 46A12 9.5 0 1 0 593.7 46ZM601.2 51.36A7 4 -50 1 0 610.2 40.64A7 4 -50 1 0 601.2 51.36Z"/>
+    </g>
+    <g class="note" data-note="G3">
+      <path class="head" d="M645.5 34A12 9.5 0 1 0 669.5 34A12 9.5 0 1 0 645.5 34ZM653 39.36A7 4 -50 1 0 662 28.64A7 4 -50 1 0 653 39.36Z"/>
+    </g>
+    <g class="note" data-note="A3">
+      <path class="head" d="M697.4 22A12 9.5 0 1 0 721.4 22A12 9.5 0 1 0 697.4 22ZM704.9 27.36A7 4 -50 1 0 713.9 16.64A7 4 -50 1 0 704.9 27.36Z"/>
+    </g>
+    <g class="note" data-note="B3">
+      <path class="head" d="M749.3 10A12 9.5 0 1 0 773.3 10A12 9.5 0 1 0 749.3 10ZM756.8 15.36A7 4 -50 1 0 765.8 4.64A7 4 -50 1 0 756.8 15.36Z"/>
+    </g>
+  </g>
+  </svg>
+
+  <!-- Note names in Hebrew: Do Re Mi Fa Sol La Si -->
+  <ol class="names" aria-label="Note names in Hebrew">
+    <li lang="he" dir="rtl">דו</li>
+    <li lang="he" dir="rtl">רה</li>
+    <li lang="he" dir="rtl">מי</li>
+    <li lang="he" dir="rtl">פה</li>
+    <li lang="he" dir="rtl">סול</li>
+    <li lang="he" dir="rtl">לה</li>
+    <li lang="he" dir="rtl">סי</li>
+    <li lang="he" dir="rtl">דו</li>
+    <li lang="he" dir="rtl">רה</li>
+    <li lang="he" dir="rtl">מי</li>
+    <li lang="he" dir="rtl">פה</li>
+    <li lang="he" dir="rtl">סול</li>
+    <li lang="he" dir="rtl">לה</li>
+    <li lang="he" dir="rtl">סי</li>
+  </ol>
+
+  <!-- Two octaves, C2 to B3: 14 white keys, 10 black keys -->
+  <svg class="piano" viewBox="-2 -2 564 160" role="img" aria-label="Piano keyboard from C2 to B3">
+    <g class="whites">
+      <rect class="white" x="0" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="40" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="80" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="120" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="160" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="200" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="240" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="280" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="320" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="360" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="400" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="440" y="0" width="40" height="154" rx="3"/>
+      <rect class="white" x="480" y="0" width="40" height="154" rx="3"/>
+      <rect class="white alt" x="520" y="0" width="40" height="154" rx="3"/>
+    </g>
+    <g class="blacks">
+      <rect class="black" x="28" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="68" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="148" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="188" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="228" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="308" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="348" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="428" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="468" y="0" width="24" height="96" rx="2"/>
+      <rect class="black" x="508" y="0" width="24" height="96" rx="2"/>
+    </g>
+  </svg>
+
+  <!-- Left-hand fingering for the C major scale: thumb (1) on G and C -->
+  <ol class="fingers" lang="he" data-label="מספר אצבע" aria-label="מספר אצבע">
+    <li>5</li>
+    <li>4</li>
+    <li>3</li>
+    <li>2</li>
+    <li>1</li>
+    <li>3</li>
+    <li>2</li>
+    <li>1</li>
+    <li>4</li>
+    <li>3</li>
+    <li>2</li>
+    <li>1</li>
+    <li>3</li>
+    <li>2</li>
+  </ol>
+</main>
+</div>
+
+<footer class="signature"><span>with love, Claude</span><svg viewBox="0 0 30 30" aria-hidden="true"><path d="M12.0 15.7Q9.2 15.4 7.1 17.1" stroke-width="1.26"/><path d="M14.4 15.2Q9.5 13.4 4.7 11.5" stroke-width="1.74"/><path d="M14.6 15.3Q12.0 12.5 9.1 10.1" stroke-width="1.78"/><path d="M14.6 14.8Q14.4 9.1 13.0 3.7" stroke-width="1.52"/><path d="M14.9 14.7Q15.2 10.9 17.1 7.5" stroke-width="1.86"/><path d="M16.1 13.8Q18.7 12.7 21.5 11.9" stroke-width="1.88"/><path d="M15.7 15.6Q20.6 14.2 25.7 14.3" stroke-width="1.21"/><path d="M14.6 15.1Q18.7 18.2 23.7 19.3" stroke-width="1.52"/><path d="M15.3 14.9Q17.2 19.8 19.6 24.5" stroke-width="1.92"/><path d="M14.4 16.3Q13.2 20.7 14.5 25.0" stroke-width="1.95"/><path d="M13.2 17.2Q11.7 21.6 8.2 24.6" stroke-width="1.47"/></svg></footer>
+</div></div></div>
+<script>
+(() => {
+  const STEPS = [0, 2, 4, 5, 7, 9, 11], BLACK_AFTER = [0, 1, 3, 4, 5], OCTAVES = 2;
+  let ctx;
+  function play(midi) {
+    ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = ctx.currentTime, freq = 440 * 2 ** ((midi - 69) / 12);
+    const out = ctx.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
+    out.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+    out.connect(ctx.destination);
+    [[1, 'triangle', 1], [2, 'sine', 0.35], [3, 'sine', 0.12]].forEach(([mult, type, level]) => {
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.type = type; osc.frequency.value = freq * mult; g.gain.value = level;
+      osc.connect(g).connect(out); osc.start(t); osc.stop(t + 1.9);
+    });
+  }
+  function flash(el) {
+    if (!el) return;
+    el.classList.add('lit');
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('lit'), 350);
+  }
+  document.querySelectorAll('.frame').forEach((frame, f) => {
+    const base = 12 * ((f === 0 ? 4 : 2) + 1);
+    const notes = frame.querySelectorAll('.note');
+    frame.querySelectorAll('.whites rect').forEach((key, i) => {
+      const midi = base + 12 * Math.floor(i / 7) + STEPS[i % 7];
+      key.addEventListener('pointerdown', () => { play(midi); flash(key); flash(notes[i]); });
+    });
+    frame.querySelectorAll('.blacks rect').forEach((key, j) => {
+      const o = Math.floor(j / BLACK_AFTER.length), w = BLACK_AFTER[j % BLACK_AFTER.length];
+      const midi = base + 12 * o + STEPS[w] + 1;
+      key.addEventListener('pointerdown', () => { play(midi); flash(key); });
+    });
+    notes.forEach((note, i) => note.addEventListener('pointerdown', () =>
+      frame.querySelectorAll('.whites rect')[i].dispatchEvent(new Event('pointerdown'))));
+  });
+  document.getElementById('print').addEventListener('click', () => window.print());
+})();
+</script>
