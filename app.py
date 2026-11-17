@@ -12,17 +12,9 @@ SITE_CSS = """
   /* The chart stays paper-white; the colour lives around it */
   body {
     min-height: 100%; box-sizing: border-box; padding-block: 0 48px;
-    background: #FFF6EC; overflow-x: hidden;
+    background: #fff; overflow-x: hidden;
     font-family: "Heebo", Arial, sans-serif;
   }
-  .sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: linear-gradient(160deg, #FFF3E6, #F3ECFF 55%, #E6F6FF); }
-  .blob { position: absolute; width: 55vmax; height: 55vmax; border-radius: 50%; filter: blur(60px); opacity: .55; animation: drift 22s ease-in-out infinite alternate; }
-  .blob.a { background: #FF9A76; top: -20vmax; left: -15vmax; }
-  .blob.b { background: #8FD694; bottom: -25vmax; left: 10vmax; animation-delay: -7s; }
-  .blob.c { background: #7FB2F0; top: -10vmax; right: -20vmax; animation-delay: -14s; }
-  .blob.d { background: #F7C8F0; bottom: -20vmax; right: -10vmax; animation-delay: -3s; }
-  @keyframes drift { to { transform: translate(6vmax, 4vmax) scale(1.12) rotate(25deg); } }
-  @media (prefers-reduced-motion: reduce) { .blob { animation: none; } }
 
   .hero { max-width: 1080px; margin: 0 auto; padding: 48px 0 24px; text-align: center; }
   .hero h1 {
@@ -45,7 +37,7 @@ SITE_CSS = """
 
   .paper {
     max-width: 1140px; margin: 16px auto 0; padding: 8px clamp(4px, 2vw, 28px) 0;
-    background: #fff; border-radius: 20px; box-shadow: 0 24px 60px rgb(60 40 90 / .18);
+    background: #fff;
   }
   .paper .frame { margin-block: 24px; }
   /* On phones the chart keeps its proportions and scrolls sideways instead of squashing */
@@ -61,7 +53,7 @@ SITE_CSS = """
   .note.lit .head { fill: var(--acc-edge); transform: scale(1.25); transition: none; }
 
   @media print {
-    .sky, .hero { display: none; }
+    .hero { display: none; }
     body { background: #fff; padding: 0; }
     .paper { box-shadow: none; border-radius: 0; padding: 0; max-width: none; }
   }
@@ -120,8 +112,6 @@ def site():
         '<meta name="description" content="A printable piano chart: treble and bass clefs, Hebrew note names and finger numbers.">',
         chart.HEAD,
         "<style>" + chart.CSS + SITE_CSS + "</style>",
-        '<div class="sky" aria-hidden="true"><div class="blob a"></div><div class="blob b"></div>'
-        '<div class="blob c"></div><div class="blob d"></div></div>',
         '<header class="hero">',
         '  <h1>Painting Pianos</h1>',
         '  <p>Tap any key or note to hear it</p>',
