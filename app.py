@@ -27,13 +27,11 @@ SITE_CSS = """
   .hero p[lang="he"] { font-weight: 700; }
   .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px; }
   .actions a, .actions button {
-    font: 700 15px "Heebo", Arial, sans-serif; color: #fff; text-decoration: none; cursor: pointer;
-    border: 0; border-radius: 999px; padding: 10px 22px;
-    background: linear-gradient(135deg, #E2603F, #C04FB0); box-shadow: 0 6px 18px rgb(192 79 176 / .3);
-    transition: transform .15s ease, box-shadow .15s ease;
+    font: 500 15px "Heebo", Arial, sans-serif; color: #1D1A3A; text-decoration: none; cursor: pointer;
+    background: #fff; border: 1.5px solid #1D1A3A; border-radius: 4px; padding: 6px 18px;
+    transition: background .15s ease, color .15s ease;
   }
-  .actions a:nth-child(2) { background: linear-gradient(135deg, #3F7FD9, #3E9B52); box-shadow: 0 6px 18px rgb(63 127 217 / .3); }
-  .actions a:hover, .actions button:hover { transform: translateY(-2px); }
+  .actions a:hover, .actions button:hover { background: #1D1A3A; color: #fff; }
 
   .paper {
     max-width: 1140px; margin: 16px auto 0; padding: 8px clamp(4px, 2vw, 28px) 0;
@@ -49,6 +47,7 @@ SITE_CSS = """
   /* Tap to play */
   .piano rect { cursor: pointer; transition: fill .25s ease; }
   .piano rect.lit { fill: var(--acc-edge); transition: none; }
+  .note { cursor: pointer; }
   .note .head { transition: fill .25s ease, transform .25s ease; transform-box: fill-box; transform-origin: center; }
   .note.lit .head { fill: var(--acc-edge); transform: scale(1.25); transition: none; }
 
@@ -114,12 +113,11 @@ def site():
         "<style>" + chart.CSS + SITE_CSS + "</style>",
         '<header class="hero">',
         '  <h1>Painting Pianos</h1>',
-        '  <p>Tap any key or note to hear it</p>',
         '  <p lang="he" dir="rtl">לחצו על קליד או תו כדי לשמוע אותו</p>',
-        '  <div class="actions"><button id="print" type="button">Print</button>'
-        '<a href="painting_pianos.png" download>Download image</a></div>',
+        '  <div class="actions"><button id="print" type="button">הדפסה</button>'
+        '<a href="painting_pianos.png" download>הורדת תמונה</a></div>',
         '</header>',
-        '<div class="paper">', '<p class="hint">← swipe to see the whole keyboard →</p>',
+        '<div class="paper">', '<p class="hint" lang="he" dir="rtl">החליקו הצידה כדי לראות את כל המקלדת</p>',
         '<div class="scroll"><div class="inner">', frames, '', chart.signature(), '</div></div></div>',
         f"<script>{js}</script>", ""])
 
