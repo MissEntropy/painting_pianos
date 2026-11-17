@@ -61,19 +61,44 @@ SITE_CSS = """
 SITE_JS = """
 (() => {
   const STEPS = [0, 2, 4, 5, 7, 9, 11], BLACK_AFTER = %(black_after)s, OCTAVES = %(octaves)d;
+  // Real grand piano recordings (Salamander Grand Piano, CC-BY 3.0), one every 3 semitones;
+  // the notes in between are the nearest recording, re-pitched.
+  const SAMPLES = { 33: 'A1', 36: 'C2', 39: 'Ds2', 42: 'Fs2', 45: 'A2', 48: 'C3', 51: 'Ds3', 54: 'Fs3',
+                    57: 'A3', 60: 'C4', 63: 'Ds4', 66: 'Fs4', 69: 'A4', 72: 'C5', 75: 'Ds5', 78: 'Fs5', 81: 'A5', 84: 'C6' };
+  const raw = {}, buffers = {};
+  for (const [m, name] of Object.entries(SAMPLES))
+    raw[m] = fetch(`samples/${name}.mp3`).then(r => r.arrayBuffer());
   let ctx;
-  function play(midi) {
+  function buffer(m) {
+    return buffers[m] = buffers[m] || raw[m].then(b => ctx.decodeAudioData(b.slice(0)));
+  }
+  async function play(midi) {
     ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-    const t = ctx.currentTime, freq = 440 * 2 ** ((midi - 69) / 12);
-    const out = ctx.createGain();
-    out.gain.setValueAtTime(0.0001, t);
-    out.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
-    out.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
-    out.connect(ctx.destination);
-    [[1, 'triangle', 1], [2, 'sine', 0.35], [3, 'sine', 0.12]].forEach(([mult, type, level]) => {
-      const osc = ctx.createOscillator(), g = ctx.createGain();
-      osc.type = type; osc.frequency.value = freq * mult; g.gain.value = level;
-      osc.connect(g).connect(out); osc.start(t); osc.stop(t + 1.9);
+    if (ctx.state === 'suspended') ctx.resume();
+    const near = Object.keys(SAMPLES).map(Number).reduce((a, b) => Math.abs(b - midi) < Math.abs(a - midi) ? b : a);
+    const src = ctx.createBufferSource(), gain = ctx.createGain();
+    src.buffer = await buffer(near);
+    src.playbackRate.value = 2 ** ((midi - near) / 12);
+    gain.gain.value = 0.8;
+    src.connect(gain).connect(ctx.destination);
+    const t = ctx.currentTime;
+    src.start(t);
+    let released = false;
+    // Like lifting a finger off the key: the sound dies away when you let go (it rings a moment first).
+    return () => {
+      if (released) return; released = true;
+      const at = Math.max(ctx.currentTime, t + 0.9);
+      gain.gain.setValueAtTime(0.8, at);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.5);
+      src.stop(at + 0.55);
+    };
+  }
+  function press(el, midi, extra) {
+    el.addEventListener('pointerdown', e => {
+      const stop = play(midi);
+      flash(el); if (extra) flash(extra);
+      const up = () => { stop.then(f => f()); el.removeEventListener('pointerup', up); el.removeEventListener('pointerleave', up); };
+      el.addEventListener('pointerup', up); el.addEventListener('pointerleave', up);
     });
   }
   function flash(el) {
@@ -86,15 +111,14 @@ SITE_JS = """
     const notes = frame.querySelectorAll('.note');
     frame.querySelectorAll('.whites rect').forEach((key, i) => {
       const midi = base + 12 * Math.floor(i / 7) + STEPS[i %% 7];
-      key.addEventListener('pointerdown', () => { play(midi); flash(key); flash(notes[i]); });
+      press(key, midi, notes[i]);
+      press(notes[i], midi, key);
     });
     frame.querySelectorAll('.blacks rect').forEach((key, j) => {
       const o = Math.floor(j / BLACK_AFTER.length), w = BLACK_AFTER[j %% BLACK_AFTER.length];
       const midi = base + 12 * o + STEPS[w] + 1;
-      key.addEventListener('pointerdown', () => { play(midi); flash(key); });
+      press(key, midi);
     });
-    notes.forEach((note, i) => note.addEventListener('pointerdown', () =>
-      frame.querySelectorAll('.whites rect')[i].dispatchEvent(new Event('pointerdown'))));
   });
   document.getElementById('print').addEventListener('click', () => window.print());
 })();

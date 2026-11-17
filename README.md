@@ -16,3 +16,7 @@ python3 app.py              # writes index.html, the web app GitHub Pages serves
 ```
 
 All settings (fingering, note names, colours, geometry) live at the top of `build.py`.
+
+## Credits
+
+Piano sound: [Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm, CC-BY 3.0 (the mp3 set in `samples/`, as published by Tone.js).
