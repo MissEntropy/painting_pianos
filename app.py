@@ -51,10 +51,14 @@ SITE_CSS = """
   .note .head { transition: fill .25s ease, transform .25s ease; transform-box: fill-box; transform-origin: center; }
   .note.lit .head { fill: var(--acc-edge); transform: scale(1.25); transition: none; }
 
+  /* Printing: one page, always. The page prints the exported image (same chart, light theme),
+     sized to fit the paper, instead of the live layout that would spill onto a second page. */
+  .print-only { display: none; }
+  @page { margin: 10mm; }
   @media print {
-    .hero { display: none; }
+    .hero, .paper { display: none; }
     body { background: #fff; padding: 0; }
-    .paper { box-shadow: none; border-radius: 0; padding: 0; max-width: none; }
+    .print-only { display: block; width: auto; height: auto; max-width: 100%; max-height: 100vh; margin: 0 auto; }
   }
 """
 
@@ -143,6 +147,7 @@ def site():
         '</header>',
         '<div class="paper">', '<p class="hint" lang="he" dir="rtl">החליקו הצידה כדי לראות את כל המקלדת</p>',
         '<div class="scroll"><div class="inner">', frames, '', chart.signature(), '</div></div></div>',
+        '<img class="print-only" src="painting_pianos.png" alt="">',
         f"<script>{js}</script>", ""])
 
 

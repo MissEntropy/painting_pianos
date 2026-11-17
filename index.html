@@ -121,10 +121,14 @@
   .note .head { transition: fill .25s ease, transform .25s ease; transform-box: fill-box; transform-origin: center; }
   .note.lit .head { fill: var(--acc-edge); transform: scale(1.25); transition: none; }
 
+  /* Printing: one page, always. The page prints the exported image (same chart, light theme),
+     sized to fit the paper, instead of the live layout that would spill onto a second page. */
+  .print-only { display: none; }
+  @page { margin: 10mm; }
   @media print {
-    .hero { display: none; }
+    .hero, .paper { display: none; }
     body { background: #fff; padding: 0; }
-    .paper { box-shadow: none; border-radius: 0; padding: 0; max-width: none; }
+    .print-only { display: block; width: auto; height: auto; max-width: 100%; max-height: 100vh; margin: 0 auto; }
   }
 </style>
 <header class="hero">
@@ -404,6 +408,7 @@
 
 <footer class="signature"><span>with love, Claude</span><svg viewBox="0 0 30 30" aria-hidden="true"><path d="M12.0 15.7Q9.2 15.4 7.1 17.1" stroke-width="1.26"/><path d="M14.4 15.2Q9.5 13.4 4.7 11.5" stroke-width="1.74"/><path d="M14.6 15.3Q12.0 12.5 9.1 10.1" stroke-width="1.78"/><path d="M14.6 14.8Q14.4 9.1 13.0 3.7" stroke-width="1.52"/><path d="M14.9 14.7Q15.2 10.9 17.1 7.5" stroke-width="1.86"/><path d="M16.1 13.8Q18.7 12.7 21.5 11.9" stroke-width="1.88"/><path d="M15.7 15.6Q20.6 14.2 25.7 14.3" stroke-width="1.21"/><path d="M14.6 15.1Q18.7 18.2 23.7 19.3" stroke-width="1.52"/><path d="M15.3 14.9Q17.2 19.8 19.6 24.5" stroke-width="1.92"/><path d="M14.4 16.3Q13.2 20.7 14.5 25.0" stroke-width="1.95"/><path d="M13.2 17.2Q11.7 21.6 8.2 24.6" stroke-width="1.47"/></svg></footer>
 </div></div></div>
+<img class="print-only" src="painting_pianos.png" alt="">
 <script>
 (() => {
   const STEPS = [0, 2, 4, 5, 7, 9, 11], BLACK_AFTER = [0, 1, 3, 4, 5], OCTAVES = 2;
