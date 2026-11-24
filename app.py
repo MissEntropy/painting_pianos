@@ -64,7 +64,6 @@ SITE_CSS = """
 
 SITE_JS = """
 (() => {
-  const STEPS = [0, 2, 4, 5, 7, 9, 11], BLACK_AFTER = %(black_after)s, OCTAVES = %(octaves)d;
   // Real grand piano recordings (Salamander Grand Piano, CC-BY 3.0), one every 3 semitones;
   // the notes in between are the nearest recording, re-pitched.
   const SAMPLES = { 33: 'A1', 36: 'C2', 39: 'Ds2', 42: 'Fs2', 45: 'A2', 48: 'C3', 51: 'Ds3', 54: 'Fs3',
@@ -110,19 +109,14 @@ SITE_JS = """
     el.classList.add('lit');
     clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('lit'), 350);
   }
-  document.querySelectorAll('.frame').forEach((frame, f) => {
-    const base = 12 * ((f === 0 ? %(treble_oct)d : %(bass_oct)d) + 1);
+  // Every key and note carries its own pitch (data-midi), written by build.py
+  document.querySelectorAll('.frame').forEach(frame => {
     const notes = frame.querySelectorAll('.note');
     frame.querySelectorAll('.whites rect').forEach((key, i) => {
-      const midi = base + 12 * Math.floor(i / 7) + STEPS[i %% 7];
-      press(key, midi, notes[i]);
-      press(notes[i], midi, key);
+      press(key, +key.dataset.midi, notes[i]);
+      press(notes[i], +key.dataset.midi, key);
     });
-    frame.querySelectorAll('.blacks rect').forEach((key, j) => {
-      const o = Math.floor(j / BLACK_AFTER.length), w = BLACK_AFTER[j %% BLACK_AFTER.length];
-      const midi = base + 12 * o + STEPS[w] + 1;
-      press(key, midi);
-    });
+    frame.querySelectorAll('.blacks rect').forEach(key => press(key, +key.dataset.midi));
   });
   document.getElementById('print').addEventListener('click', () => window.print());
 })();
@@ -130,8 +124,7 @@ SITE_JS = """
 
 
 def site():
-    js = SITE_JS % dict(black_after=chart.BLACK_AFTER, octaves=chart.OCTAVES,
-                        treble_oct=chart.FRAMES[0]["octave"], bass_oct=chart.FRAMES[1]["octave"])
+    js = SITE_JS
     frames = "\n\n".join(chart.frame_html(fr) for fr in chart.FRAMES)
     return "\n".join([
         '<!doctype html>', '<html lang="en" data-theme="light">', '<meta charset="utf-8">',

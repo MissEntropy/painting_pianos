@@ -19,24 +19,53 @@ FRAMES = [
         css_class="",             # green accents
         title="מפתח סול (יד ימין)",
         clef="treble",
-        octave=4,                 # keys run C4..B5
-        fingers=[1, 2, 3, 1, 2, 3, 4] * 2,           # RH C major scale, thumb under on C and F
+        start="F3",               # keys run F3 (Fa, small octave) .. B5 (Si, second octave)
+        keys=18,                  # white keys in this frame
+        mark=("F3", "C5"),        # columns painted like a highlighter, Fa (small octave) .. Do (second octave)
+        fingers=[1, 2, 3, 4, 1, 2, 3] * 2 + [1, 2, 3, 4],           # RH C major scale, thumb under on C and F
         fingers_note="Right-hand fingering for the C major scale: thumb (1) on C and F",
     ),
     dict(
         css_class="bass",         # blue accents
         title="מפתח פה (יד שמאל)",
         clef="bass",
-        octave=2,                 # keys run C2..B3
-        fingers=[5, 4, 3, 2, 1, 3, 2, 1, 4, 3, 2, 1, 3, 2],  # LH C major scale, thumb on G and C
+        start="C2",               # keys run C2 (Do, great octave) .. F4 (Fa, first octave)
+        keys=18,
+        mark=("C3", "F4"),        # Do (small octave) .. Fa (first octave)
+        fingers=[5, 4, 3, 2, 1, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 4, 3, 2],  # LH C major scale, thumb on G and C
         fingers_note="Left-hand fingering for the C major scale: thumb (1) on G and C",
     ),
 ]
+SHOW_NAMES = False            # True puts the row of Hebrew names back between the staff and the keyboard
+SHOW_FINGERS = False          # True puts the finger-number row back under each keyboard
 FINGER_LABEL = "מספר אצבע"
 HEBREW_NAMES = ["דו", "רה", "מי", "פה", "סול", "לה", "סי"]
 LETTERS = "CDEFGAB"
-OCTAVES = 2
-N_WHITE = 7 * OCTAVES
+SEMITONES = [0, 2, 4, 5, 7, 9, 11]   # C D E F G A B, counted from C
+
+
+def step_of(note):
+    """Diatonic step of a note name like "F3": letter index + 7 * octave."""
+    return LETTERS.index(note[0]) + 7 * int(note[1:])
+
+
+def white_keys(frame):
+    """The frame's white keys, low to high: (letter index, octave), starting at frame["start"]."""
+    first = step_of(frame["start"])
+    return [(step % 7, step // 7) for step in range(first, first + frame["keys"])]
+
+
+def midi(letter, octave):
+    return 12 * (octave + 1) + SEMITONES[letter]
+
+
+def key_name(letter, octave):
+    return f"{LETTERS[letter]}{octave}"
+
+
+def key_range(frame):
+    keys = white_keys(frame)
+    return f"{key_name(*keys[0])} to {key_name(*keys[-1])}"
 
 # ---------------------------------------------------------------- keyboard geometry (piano SVG units)
 KEY_W, WHITE_H = 40, 154
@@ -51,30 +80,55 @@ SCALE = 904 * 0.86667 / 604        # staff units per piano unit (keeps the size 
 KEY0 = 60.86                       # staff x where the first key starts
 STAFF_LEFT = -40                   # staff lines start here; clef lives between here and KEY0
 KEY_STAFF_W = KEY_W * SCALE
-KEYS_CENTRE = KEY0 + N_WHITE * KEY_STAFF_W / 2
-STAFF_RIGHT = round(2 * KEYS_CENTRE - STAFF_LEFT)   # same overhang both sides -> piano centred
+
+
+def staff_right(n):
+    """Right end of the staff for n keys: same overhang both sides, so the piano sits centred."""
+    return round(2 * (KEY0 + n * KEY_STAFF_W / 2) - STAFF_LEFT)
 
 CLEFS = {
     # bottom_step: diatonic step of the bottom line (letter index + 7*octave): E4 = 30, G2 = 18
     # Noto Music glyphs: 250 font units per staff space, so 96px gives 24-unit spaces.
     "treble": dict(glyph="\U0001D11E", bottom_step=30, size=96, x=-33, y=118, cls="clef",
-                   viewbox_y=(-44, 210), name="Treble"),
+                   viewbox_y=(-52, 264), name="Treble"),
     # The bass clef is drawn a bit small in this font: 100px, baseline raised so the dots
     # straddle the F line and the top just meets the top line (checked against a screenshot).
     "bass": dict(glyph="\U0001D122", bottom_step=18, size=100, x=-35, y=110.7, cls="clef bass-clef",
-                 viewbox_y=(-14, 200), name="Bass"),
+                 viewbox_y=(-74, 260), name="Bass"),
 }
 
-# ---------------------------------------------------------------- layout percentages (shared by both frames)
+# ---------------------------------------------------------------- layout percentages (one set per frame)
 VB_X0 = STAFF_LEFT - 2
-VB_W = (STAFF_RIGHT + 2) - VB_X0
-pct = lambda u: f"{u / VB_W * 100:.3f}%"
-PIANO_W = pct(564 * SCALE)                       # piano viewBox is 564 wide (-2 .. 562)
-PIANO_LEFT = pct(KEY0 - 2 * SCALE - VB_X0)
-BANDS_LEFT = pct(KEY0 - VB_X0)
-BANDS_W = pct(N_WHITE * KEY_STAFF_W)
-COL = f"{100 / N_WHITE:.6f}%"
-COL2 = f"{200 / N_WHITE:.6f}%"
+vb_width = lambda n: (staff_right(n) + 2) - VB_X0
+MOST_KEYS = max(fr["keys"] for fr in FRAMES)
+
+
+def layout_vars(frame):
+    """CSS variables placing the bands, names, piano and fingers under this frame's staff.
+
+    Keys are the same size in every frame: a frame with fewer keys gets a narrower canvas."""
+    n = frame["keys"]
+    width = vb_width(n)
+    pct = lambda u: f"{u / width * 100:.3f}%"
+    return "; ".join([
+        f"--canvas-w: {width / vb_width(MOST_KEYS) * 100:.3f}%",
+        f"--piano-w: {pct((n * KEY_W + 4) * SCALE)}",     # piano viewBox runs -2 .. n*KEY_W+2
+        f"--piano-left: {pct(KEY0 - 2 * SCALE - VB_X0)}",
+        f"--bands-left: {pct(KEY0 - VB_X0)}",
+        f"--bands-w: {pct(n * KEY_STAFF_W)}",
+        f"--col: {100 / n:.6f}%", f"--col2: {200 / n:.6f}%", f"--keys: {n}",
+        *mark_vars(frame, pct),
+    ])
+
+
+def mark_vars(frame, pct):
+    """Where the highlighted columns (frame["mark"], first .. last note) sit."""
+    if "mark" not in frame:
+        return []
+    first, last = (step_of(note) - step_of(frame["start"]) for note in frame["mark"])
+    assert 0 <= first <= last < frame["keys"], "the marked notes must be on this keyboard"
+    return [f"--mark-left: {pct(KEY0 + first * KEY_STAFF_W - VB_X0)}",
+            f"--mark-w: {pct((last - first + 1) * KEY_STAFF_W)}"]
 
 f = lambda v: f"{round(v, 2):g}"
 
@@ -89,56 +143,61 @@ def whole_note(x, y):
 
 def staff_svg(frame):
     c = CLEFS[frame["clef"]]
-    lo, hi = frame["octave"], frame["octave"] + OCTAVES - 1
+    right = staff_right(frame["keys"])
     y_of = lambda step: BOTTOM - (step - c["bottom_step"]) * SPACE / 2
-    out = [f'  <!-- {c["name"]} staff: one whole note above each white key, C{lo} to B{hi} -->',
-           f'  <svg class="staff" viewBox="{VB_X0} {c["viewbox_y"][0]} {VB_W} {c["viewbox_y"][1]}" role="img" '
-           f'aria-label="{c["name"]} staff with a whole note for every white key, C{lo} to B{hi}">']
+    out = [f'  <!-- {c["name"]} staff: one whole note above each white key, {key_range(frame)} -->',
+           f'  <svg class="staff" viewBox="{VB_X0} {c["viewbox_y"][0]} {vb_width(frame["keys"])} {c["viewbox_y"][1]}" role="img" '
+           f'aria-label="{c["name"]} staff with a whole note for every white key, {key_range(frame)}">']
     for y in LINES_Y:
-        out.append(f'    <line x1="{STAFF_LEFT}" y1="{y}" x2="{STAFF_RIGHT}" y2="{y}"/>')
-    for x in (STAFF_LEFT, STAFF_RIGHT):
+        out.append(f'    <line x1="{STAFF_LEFT}" y1="{y}" x2="{right}" y2="{y}"/>')
+    for x in (STAFF_LEFT, right):
         out.append(f'    <line x1="{x}" y1="{LINES_Y[0]}" x2="{x}" y2="{BOTTOM}"/>')
     out.append(f'  <text class="{c["cls"]}" x="{c["x"]}" y="{c["y"]}">{c["glyph"]}</text>')
     out.append('  <g class="notes">')
-    for i in range(N_WHITE):
-        letter, octv = i % 7, frame["octave"] + i // 7
+    for i, (letter, octv) in enumerate(white_keys(frame)):
         step = letter + 7 * octv
         x = round(KEY0 + (i + 0.5) * KEY_STAFF_W, 1)
         y = y_of(step)
         ledgers = [s for s in range(c["bottom_step"] - 2, step - 1, -2)]            # below the staff
         ledgers += [s for s in range(c["bottom_step"] + 10, step + 1, 2)]          # above the staff
-        out.append(f'    <g class="note" data-note="{LETTERS[letter]}{octv}">')
+        out.append(f'    <g class="note" data-note="{key_name(letter, octv)}" data-midi="{midi(letter, octv)}">')
         for s in ledgers:
             ly = y_of(s)
             out.append(f'      <line class="ledger" x1="{f(x-17)}" y1="{f(ly)}" x2="{f(x+17)}" y2="{f(ly)}"/>')
         out.append(f'      <path class="head" d="{whole_note(x, y)}"/>')
+        # The Hebrew name right above the note head, outlined in the column's colour so the
+        # staff lines don't cut through the letters
+        band = "b" if i % 2 else "a"
+        out.append(f'      <text class="label band-{band}" x="{x}" y="{f(y - 14)}" lang="he" '
+                   f'text-anchor="middle">{HEBREW_NAMES[letter]}</text>')
         out.append('    </g>')
     out += ['  </g>', '  </svg>']
     return "\n".join(out)
 
 
-def names_list():
-    items = "\n".join(f'    <li lang="he" dir="rtl">{HEBREW_NAMES[i % 7]}</li>' for i in range(N_WHITE))
+def names_list(frame):
+    items = "\n".join(f'    <li lang="he" dir="rtl">{HEBREW_NAMES[letter]}</li>' for letter, _ in white_keys(frame))
     return ('  <!-- Note names in Hebrew: Do Re Mi Fa Sol La Si -->\n'
             f'  <ol class="names" aria-label="Note names in Hebrew">\n{items}\n  </ol>')
 
 
 def piano_svg(frame):
-    lo, hi = frame["octave"], frame["octave"] + OCTAVES - 1
+    keys = white_keys(frame)
     whites = "\n".join(
         f'      <rect class="white{" alt" if i % 2 else ""}" x="{i * KEY_W}" y="0" width="{KEY_W}" '
-        f'height="{WHITE_H}" rx="3"/>' for i in range(N_WHITE))
-    blacks = "\n".join(
-        f'      <rect class="black" x="{(o * 7 + w + 1) * KEY_W - BLACK_W // 2}" y="0" width="{BLACK_W}" '
-        f'height="{BLACK_H}" rx="2"/>' for o in range(OCTAVES) for w in BLACK_AFTER)
-    return (f'  <!-- Two octaves, C{lo} to B{hi}: {N_WHITE} white keys, {5 * OCTAVES} black keys -->\n'
-            f'  <svg class="piano" viewBox="-2 -2 {N_WHITE * KEY_W + 4} {WHITE_H + 6}" role="img" '
-            f'aria-label="Piano keyboard from C{lo} to B{hi}">\n'
-            f'    <g class="whites">\n{whites}\n    </g>\n    <g class="blacks">\n{blacks}\n    </g>\n  </svg>')
+        f'height="{WHITE_H}" rx="3" data-midi="{midi(letter, octv)}"/>' for i, (letter, octv) in enumerate(keys))
+    # A black key sits between a white key and the next one, after C, D, F, G and A
+    blacks = [f'      <rect class="black" x="{(i + 1) * KEY_W - BLACK_W // 2}" y="0" width="{BLACK_W}" '
+              f'height="{BLACK_H}" rx="2" data-midi="{midi(letter, octv) + 1}"/>'
+              for i, (letter, octv) in enumerate(keys[:-1]) if letter in BLACK_AFTER]
+    return (f'  <!-- {key_range(frame)}: {frame["keys"]} white keys, {len(blacks)} black keys -->\n'
+            f'  <svg class="piano" viewBox="-2 -2 {frame["keys"] * KEY_W + 4} {WHITE_H + 6}" role="img" '
+            f'aria-label="Piano keyboard from {key_range(frame)}">\n'
+            f'    <g class="whites">\n{whites}\n    </g>\n    <g class="blacks">\n' + "\n".join(blacks) + '\n    </g>\n  </svg>')
 
 
 def fingers_list(frame):
-    assert len(frame["fingers"]) == N_WHITE, "one finger number per white key"
+    assert len(frame["fingers"]) == frame["keys"], "one finger number per white key"
     items = "\n".join(f"    <li>{n}</li>" for n in frame["fingers"])
     return (f'  <!-- {frame["fingers_note"]} -->\n'
             f'  <ol class="fingers" lang="he" data-label="{FINGER_LABEL}" aria-label="{FINGER_LABEL}">\n'
@@ -148,11 +207,14 @@ def fingers_list(frame):
 def frame_html(frame):
     cls = f'frame {frame["css_class"]}'.strip()
     return "\n".join([
-        f'<div class="{cls}">',
+        f'<div class="{cls}" style="{layout_vars(frame)}">',
         f'<h1 class="title" lang="he" dir="rtl">{frame["title"]}</h1>',
         '<main class="canvas">',
         '  <div class="bands" aria-hidden="true"></div>',
-        staff_svg(frame), '', names_list(), '', piano_svg(frame), '', fingers_list(frame),
+        staff_svg(frame), '', *([names_list(frame), ''] if SHOW_NAMES else []), piano_svg(frame),
+        *(['', fingers_list(frame)] if SHOW_FINGERS else []),
+        # On top of everything, like a real highlighter; clicks pass through to the keys
+        *(['  <div class="mark" aria-hidden="true"></div>'] if "mark" in frame else []),
         '</main>', '</div>'])
 
 
@@ -181,16 +243,21 @@ CSS = f"""
     font-family: "Heebo", "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif; font-weight: 700;
     font-size: clamp(17px, 2.2vw, 24px); line-height: 1.2; color: var(--acc-fg);
   }}
-  .canvas {{ padding-block: 48px; display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 1080px; margin-inline: auto; position: relative; }}
+  .canvas {{ padding-block: 48px; display: flex; flex-direction: column; align-items: center; gap: 20px; width: var(--canvas-w); max-width: 1080px; margin-inline: auto; position: relative; }}
   /* One grey column per white key, from the top of the staff down to the finger numbers */
+  /* Highlighter over the marked columns: multiply tints everything under it and keeps the stripes */
+  .mark {{
+    position: absolute; top: 48px; bottom: 48px; left: var(--mark-left); width: var(--mark-w);
+    background: var(--acc-bg); mix-blend-mode: multiply; pointer-events: none;
+  }}
   .bands {{
-    position: absolute; top: 48px; bottom: 48px; left: {BANDS_LEFT}; width: {BANDS_W};
-    background: repeating-linear-gradient(90deg, var(--band-a) 0 {COL}, var(--band-b) {COL} {COL2});
+    position: absolute; top: 48px; bottom: 48px; left: var(--bands-left); width: var(--bands-w);
+    background: repeating-linear-gradient(90deg, var(--band-a) 0 var(--col), var(--band-b) var(--col) var(--col2));
   }}
   .staff, .piano, .names, .fingers {{ position: relative; }}
   .names, .fingers {{
-    align-self: flex-start; width: {BANDS_W}; margin: 0 0 0 {BANDS_LEFT}; padding: 0; list-style: none;
-    display: grid; grid-template-columns: repeat({N_WHITE}, 1fr);
+    align-self: flex-start; width: var(--bands-w); margin: 0 0 0 var(--bands-left); padding: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(var(--keys), 1fr);
     font-family: "Heebo", "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif;
     font-size: clamp(13px, 2vw, 22px); line-height: 1.6; text-align: center; color: var(--fg);
   }}
@@ -206,9 +273,15 @@ CSS = f"""
   }}
   .piano, .staff {{ height: auto; display: block; }}
   .staff {{ width: 100%; }}
-  .piano {{ width: {PIANO_W}; align-self: flex-start; margin-left: {PIANO_LEFT}; }}
+  .piano {{ width: var(--piano-w); align-self: flex-start; margin-left: var(--piano-left); }}
   .staff line {{ stroke: var(--fg); stroke-width: 2; stroke-linecap: round; }}
   .staff .head {{ fill: var(--fg); fill-rule: evenodd; }}
+  .staff .label {{
+    font-family: "Heebo", "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif; font-size: 16px; font-weight: 700;
+    fill: var(--acc-fg); stroke-width: 5px; stroke-linejoin: round; paint-order: stroke;
+  }}
+  .staff .label.band-a {{ stroke: var(--band-a); }}
+  .staff .label.band-b {{ stroke: var(--band-b); }}
   .staff .clef {{ fill: var(--fg); font-size: {CLEFS["treble"]["size"]}px; font-family: "Noto Music", serif; }}
   .staff .bass-clef {{ font-size: {CLEFS["bass"]["size"]}px; }}
   .white {{ fill: var(--key-white); stroke: var(--key-edge); stroke-width: 2; }}
